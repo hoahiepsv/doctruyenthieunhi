@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Key, Save, Edit2, Lock, Unlock, Mic2 } from 'lucide-react';
+import { Key, Save, Edit2, Lock, Unlock } from 'lucide-react';
 
 interface ApiKeyModalProps {
-  onSave: (geminiKey: string, elevenKey: string) => void;
+  onSave: (key: string) => void;
   hasKey: boolean;
 }
 
@@ -11,28 +10,19 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
   const [isOpen, setIsOpen] = useState(!hasKey);
   const [mode, setMode] = useState<'password' | 'manual'>('password'); // 'password' or 'manual'
   const [passwordInput, setPasswordInput] = useState('');
-  
-  const [geminiKeyInput, setGeminiKeyInput] = useState('');
-  const [elevenKeyInput, setElevenKeyInput] = useState('');
-  
+  const [keyInput, setKeyInput] = useState('');
   const [error, setError] = useState('');
 
-  const VIP_KEY_GEMINI = "AIzaSyDsYJl1FT3aE73HcfNqWxXu8pI4FgqiVdo";
-  const VIP_KEY_ELEVEN = ""; // Leave blank or fill if you have a shared key
+  const VIP_KEY = "AIzaSyDsYJl1FT3aE73HcfNqWxXu8pI4FgqiVdo";
   const VIP_PASS = "0983676470";
 
   useEffect(() => {
-    // Check local storage for existing secondary keys
-    const storedEleven = localStorage.getItem('eleven_api_key');
-    if (storedEleven) setElevenKeyInput(storedEleven);
-    
     if (!hasKey) setIsOpen(true);
   }, [hasKey]);
 
   const handlePasswordSubmit = () => {
     if (passwordInput === VIP_PASS) {
-      // For VIP, we can optionally provide an ElevenLabs key if you have one shared
-      onSave(VIP_KEY_GEMINI, VIP_KEY_ELEVEN);
+      onSave(VIP_KEY);
       setIsOpen(false);
       setPasswordInput('');
       setError('');
@@ -43,9 +33,10 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
   };
 
   const handleManualSave = () => {
-    if (geminiKeyInput.trim()) {
-      onSave(geminiKeyInput.trim(), elevenKeyInput.trim());
+    if (keyInput.trim()) {
+      onSave(keyInput.trim());
       setIsOpen(false);
+      setKeyInput('');
     }
   };
 
@@ -65,7 +56,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-t-4 border-blue-600 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-t-4 border-blue-600 relative overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6 text-blue-700">
           {mode === 'password' ? <Lock size={28} /> : <Key size={28} />}
@@ -122,45 +113,28 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
         {/* Manual API Mode */}
         {mode === 'manual' && (
           <div className="space-y-4 animate-fadeIn">
-            <p className="text-gray-600 text-sm mb-4">
-              Nhập khóa API để sử dụng các tính năng nâng cao.
+            <p className="text-gray-600">
+              Nhập khóa API Gemini Google của bạn để sử dụng các tính năng AI.
             </p>
-            
-            {/* Gemini Input */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Google Gemini API Key (Bắt buộc)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
               <input
                 type="password"
-                value={geminiKeyInput}
-                onChange={(e) => setGeminiKeyInput(e.target.value)}
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
                 placeholder="AIzaSy..."
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-
-            {/* ElevenLabs Input */}
-            <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-               <label className="block text-sm font-bold text-indigo-800 mb-1 flex items-center gap-2">
-                 <Mic2 size={14}/> ElevenLabs API Key (Tùy chọn)
-               </label>
-               <p className="text-xs text-indigo-600 mb-2">Nhập key này để có giọng đọc "Đọc Ngay" cảm xúc như người thật.</p>
-               <input
-                type="password"
-                value={elevenKeyInput}
-                onChange={(e) => setElevenKeyInput(e.target.value)}
-                placeholder="xi-api-key..."
-                className="w-full px-4 py-2 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
               />
             </div>
 
             <div className="flex flex-col gap-3 pt-2">
               <button
                 onClick={handleManualSave}
-                disabled={!geminiKeyInput.trim()}
+                disabled={!keyInput.trim()}
                 className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
               >
                 <Save size={18} />
-                Lưu Cấu Hình
+                Lưu API Key
               </button>
               
               <button 
