@@ -18,17 +18,14 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
   const [error, setError] = useState('');
 
   // Mô phỏng cơ sở dữ liệu (Google Sheet)
-  // Cấu trúc: "Mật khẩu": "API Key"
   const CREDENTIAL_DATABASE: Record<string, string> = {
-    "0983676470": "AIzaSyDsYJl1FT3aE73HcfNqWxXu8pI4FgqiVdo", // VIP Cũ
-    "huyphat": "AIzaSyARyAaXzOkegmGv-sGO3KpJsPv7unTmuZ0"     // VIP Mới (Google Sheet)
+    "0983676470": "AIzaSyDsYJl1FT3aE73HcfNqWxXu8pI4FgqiVdo",
+    "huyphat": "AIzaSyARyAaXzOkegmGv-sGO3KpJsPv7unTmuZ0"
   };
 
   useEffect(() => {
-    // Check local storage for existing secondary keys
     const storedEleven = localStorage.getItem('eleven_api_key');
     if (storedEleven) setElevenKeyInput(storedEleven);
-    
     if (!hasKey) setIsOpen(true);
   }, [hasKey]);
 
@@ -36,14 +33,13 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
     const matchedKey = CREDENTIAL_DATABASE[passwordInput];
 
     if (matchedKey) {
-      // Tìm thấy mật khẩu trong "Sheet", tự động điền Key tương ứng
-      onSave(matchedKey, ""); // Mặc định không có Eleven Key
+      onSave(matchedKey, "");
       setIsOpen(false);
       setPasswordInput('');
       setError('');
-      alert(`Kích hoạt thành công tài khoản: ${passwordInput}!`);
+      alert(`Kích hoạt thành công!`);
     } else {
-      setError("Mật khẩu không đúng hoặc không tồn tại trong hệ thống.");
+      setError("Mật khẩu không đúng.");
     }
   };
 
@@ -82,11 +78,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
         {/* Password Mode */}
         {mode === 'password' && (
           <div className="space-y-4 animate-fadeIn">
-            <p className="text-gray-600">
-              Vui lòng nhập mật khẩu để kích hoạt ứng dụng tự động (Dữ liệu từ Google Sheet).
-            </p>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Mật khẩu kích hoạt</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Mật khẩu</label>
               <input
                 type="password"
                 value={passwordInput}
@@ -95,7 +88,6 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
                   setError('');
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                placeholder="Nhập mật khẩu (vd: huyphat)..."
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-lg tracking-widest"
               />
               {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
@@ -106,7 +98,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
             >
               <Unlock size={18} />
-              Kích Hoạt Ngay
+              Kích Hoạt
             </button>
 
             <div className="relative flex py-2 items-center">
@@ -119,7 +111,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
               onClick={() => setMode('manual')}
               className="w-full text-sm text-gray-500 hover:text-blue-600 font-medium underline decoration-dotted underline-offset-4"
             >
-              Tôi muốn nhập API Key riêng của mình
+              Nhập API Key thủ công
             </button>
           </div>
         )}
@@ -127,34 +119,14 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
         {/* Manual API Mode */}
         {mode === 'manual' && (
           <div className="space-y-4 animate-fadeIn">
-            <p className="text-gray-600 text-sm mb-4">
-              Nhập khóa API để sử dụng các tính năng nâng cao.
-            </p>
-            
-            {/* Gemini Input */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Google Gemini API Key (Bắt buộc)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Google Gemini API Key</label>
               <input
                 type="password"
                 value={geminiKeyInput}
                 onChange={(e) => setGeminiKeyInput(e.target.value)}
                 placeholder="AIzaSy..."
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-
-            {/* ElevenLabs Input */}
-            <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-               <label className="block text-sm font-bold text-indigo-800 mb-1 flex items-center gap-2">
-                 <Mic2 size={14}/> ElevenLabs API Key (Tùy chọn)
-               </label>
-               <p className="text-xs text-indigo-600 mb-2">Nhập key này để có giọng đọc "Đọc Ngay" cảm xúc như người thật.</p>
-               <input
-                type="password"
-                value={elevenKeyInput}
-                onChange={(e) => setElevenKeyInput(e.target.value)}
-                placeholder="xi-api-key..."
-                className="w-full px-4 py-2 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
               />
             </div>
 
@@ -165,20 +137,19 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
                 className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
               >
                 <Save size={18} />
-                Lưu Cấu Hình
+                Lưu
               </button>
               
               <button 
                 onClick={() => setMode('password')}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
-                ← Quay lại nhập mật khẩu
+                ← Quay lại
               </button>
             </div>
           </div>
         )}
 
-        {/* Close Button if already has key */}
         {hasKey && (
            <button 
              onClick={() => setIsOpen(false)}
