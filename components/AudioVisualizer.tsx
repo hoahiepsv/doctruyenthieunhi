@@ -1,56 +1,69 @@
-
 import React, { useEffect, useRef } from 'react';
 
 interface AudioVisualizerProps {
-  analyser: AnalyserNode | null;
+  audioElement: HTMLAudioElement | null;
   isPlaying: boolean;
 }
 
-const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ analyser, isPlaying }) => {
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioElement, isPlaying }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationRef = useRef<number>();
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !analyser) return;
+    if (!audioElement || !canvasRef.current) return;
 
+    // Initialize Audio Context only once on user interaction usually, 
+    // but here we assume audio is already loaded/ready to play
+    if (!audioContextRef.current) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      audioContextRef.current = new AudioContextClass();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+      
+      // Connect source
+      try {
+        sourceRef.current = audioContextRef.current.createMediaElementSource(audioElement);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioContextRef.current.destination);
+      } catch (e) {
+        // Source might already be connected if component remounts
+        console.warn("Audio source connection issue:", e);
+      }
+    }
+
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const analyser = analyserRef.current;
 
     const renderFrame = () => {
-      // Get Data
+      if (!ctx || !analyser) return;
+
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
       analyser.getByteFrequencyData(dataArray);
 
-      // Clear Canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw settings
       const width = canvas.width;
       const height = canvas.height;
       const barWidth = (width / bufferLength) * 2.5;
       let x = 0;
 
-      // Draw loop
       for (let i = 0; i < bufferLength; i++) {
-        const value = dataArray[i];
-        const barHeight = (value / 255) * height;
+        const barHeight = (dataArray[i] / 255) * height;
 
-        // Gradient color based on height/intensity
         const gradient = ctx.createLinearGradient(0, height, 0, height - barHeight);
-        gradient.addColorStop(0, '#3b82f6'); // blue-500
-        gradient.addColorStop(0.5, '#60a5fa'); // blue-400
-        gradient.addColorStop(1, '#93c5fd'); // blue-300
+        gradient.addColorStop(0, '#3b82f6'); // Blue-500
+        gradient.addColorStop(1, '#60a5fa'); // Blue-400
 
         ctx.fillStyle = gradient;
-        
-        // Rounded bars
-        if (barHeight > 0) {
-            ctx.beginPath();
-            ctx.roundRect(x, height - barHeight, barWidth, barHeight, [4, 4, 0, 0]);
-            ctx.fill();
-        }
+        // Rounded top bars
+        ctx.beginPath();
+        ctx.roundRect(x, height - barHeight, barWidth, barHeight, [4, 4, 0, 0]);
+        ctx.fill();
 
         x += barWidth + 2;
       }
@@ -61,22 +74,14 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ analyser, isPlaying }
     };
 
     if (isPlaying) {
-      // Ensure context is running (browser autoplay policy)
-      if (analyser.context.state === 'suspended') {
-        analyser.context.resume();
+      if (audioContextRef.current?.state === 'suspended') {
+        audioContextRef.current.resume();
       }
       renderFrame();
     } else {
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw a flat line
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height - 2);
-        ctx.lineTo(canvas.width, canvas.height - 2);
-        ctx.strokeStyle = '#e2e8f0'; // slate-200
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Draw a flat line or last frame
+         if(animationRef.current) cancelAnimationFrame(animationRef.current);
+         // Optional: Clear or draw idle state
     }
 
     return () => {
@@ -84,14 +89,14 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ analyser, isPlaying }
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [analyser, isPlaying]);
+  }, [audioElement, isPlaying]);
 
   return (
     <canvas 
       ref={canvasRef} 
-      width={800} 
-      height={120} 
-      className="w-full h-full"
+      width={300} 
+      height={60} 
+      className="w-full h-16 rounded-lg bg-blue-50/50"
     />
   );
 };

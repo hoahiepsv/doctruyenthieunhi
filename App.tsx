@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  BookOpen, Search, Play, Pause, Sparkles, Book, Globe2, Map as MapIcon, FileDown,
-  ChevronLeft, ChevronRight, Image as ImageIcon, Mic2, Download, MousePointerClick
+  BookOpen, Search, Play, Pause, ListMusic, Sparkles, Book, Globe2, Map as MapIcon, FileDown, Trash2, X,
+  ChevronLeft, ChevronRight, Image as ImageIcon, Mic2, Download
 } from 'lucide-react';
 import { INITIAL_STORIES, VOICES, INSTANT_VOICES_PRESETS } from './constants';
-import { Story, VoiceOption, InstantVoice } from './types';
+import { Story, VoiceOption, PlaylistItem, InstantVoice } from './types';
 import * as GeminiService from './services/geminiService';
 import ApiKeyModal from './components/ApiKeyModal';
 import AudioVisualizer from './components/AudioVisualizer';
@@ -32,6 +32,10 @@ export default function App() {
   // Gemini Voice (For High Quality Download)
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
   
+  const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(-1);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  
   // Audio State (AI Generated)
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlayingAI, setIsPlayingAI] = useState(false);
@@ -49,18 +53,12 @@ export default function App() {
   
   // Instant Voice Selection
   const [availableInstantVoices, setAvailableInstantVoices] = useState<InstantVoice[]>(INSTANT_VOICES_PRESETS);
-  // SET DEFAULT TO 'google-normal' (Chị Google Chuẩn)
-  const [selectedInstantVoiceId, setSelectedInstantVoiceId] = useState<string>('google-normal');
+  const [selectedInstantVoiceId, setSelectedInstantVoiceId] = useState<string>(INSTANT_VOICES_PRESETS[0].id);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sentenceAudioRef = useRef<HTMLAudioElement | null>(null); 
   const sentenceRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
-
-  // Audio Context & Visualizer Logic
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   // --- Initialization ---
   useEffect(() => {
@@ -75,62 +73,7 @@ export default function App() {
     if (savedVoicePref) {
       setSelectedInstantVoiceId(savedVoicePref);
     }
-
-    // Initialize Audio Context for Visualizer
-    const initAudioContext = () => {
-        if (audioContextRef.current) return;
-        
-        try {
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            const ctx = new AudioContextClass();
-            const anal = ctx.createAnalyser();
-            anal.fftSize = 256;
-            anal.connect(ctx.destination);
-            
-            audioContextRef.current = ctx;
-            analyserRef.current = anal;
-            setAnalyser(anal);
-            
-            // Note: MediaElementSource can only be created once per element. 
-            // We do this connection lazily or safely.
-        } catch (e) {
-            console.error("Audio Context Init Failed", e);
-        }
-    };
-    
-    // Initialize on interaction to unlock audio context
-    const handleInteraction = () => {
-        initAudioContext();
-        if (audioContextRef.current?.state === 'suspended') {
-            audioContextRef.current.resume();
-        }
-        window.removeEventListener('click', handleInteraction);
-    };
-    window.addEventListener('click', handleInteraction);
-
-    return () => {
-        if(audioContextRef.current) audioContextRef.current.close();
-        window.removeEventListener('click', handleInteraction);
-    };
   }, []);
-
-  // Connect Audio Elements to Visualizer safely
-  useEffect(() => {
-      if (!analyserRef.current || !audioContextRef.current) return;
-      
-      const connect = (el: HTMLAudioElement) => {
-          try {
-              // This throws if already connected, so we wrap in try/catch
-              const source = audioContextRef.current!.createMediaElementSource(el);
-              source.connect(analyserRef.current!);
-          } catch (e) {
-              // Already connected
-          }
-      };
-
-      if (audioRef.current) connect(audioRef.current);
-      if (sentenceAudioRef.current) connect(sentenceAudioRef.current);
-  }, [analyser]); // Run once analyser is ready
 
   // --- Scan for Browser Native Voices ---
   useEffect(() => {
@@ -278,6 +221,7 @@ export default function App() {
          setStorySentences(newSentences);
          setSelectedStory(prev => prev && prev.id === story.id ? { ...prev, content: fullContent } : prev);
          setStories(prev => prev.map(s => s.id === story.id ? { ...s, content: fullContent } : s));
+         setPlaylist(prev => prev.map(p => p.id === story.id ? { ...p, content: fullContent } : p));
          setIsExpandingContent(false);
        });
     }
@@ -344,6 +288,24 @@ export default function App() {
     // @ts-ignore
     if (window.html2pdf) window.html2pdf().set(opt).from(pdfContainer).save();
     else alert("Đang tải thư viện tạo PDF, vui lòng thử lại sau giây lát.");
+  };
+
+  const addToPlaylist = (story: Story) => {
+    if (playlist.find(p => p.id === story.id)) {
+      setShowPlaylist(true);
+      return;
+    }
+    const storyToAdd = (selectedStory && selectedStory.id === story.id) ? selectedStory : story;
+    setPlaylist([...playlist, { ...storyToAdd }]);
+    alert(`Đã thêm "${story.title}" vào danh sách phát!`);
+  };
+
+  const removeFromPlaylist = (id: string) => {
+    setPlaylist(prev => {
+      const newList = prev.filter(p => p.id !== id);
+      if (newList.length === 0) stopAllAudio();
+      return newList;
+    });
   };
 
   const stopAllAudio = () => {
@@ -414,11 +376,6 @@ export default function App() {
     if (storySentences.length === 0) return;
     if (currentSentenceIndex < 0) setCurrentSentenceIndex(0);
     setIsReadingInstant(true);
-    
-    // Resume audio context if needed
-    if (audioContextRef.current?.state === 'suspended') {
-        audioContextRef.current.resume();
-    }
   };
 
   const handleInstantVoiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -456,9 +413,8 @@ export default function App() {
     // Method 1: Google Online TTS
     if (isGoogle) {
         if (sentenceAudioRef.current) {
-           // Use client=tw-ob for better compatibility (direct file access)
-           const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=vi&q=${encodeURIComponent(text)}`;
-           
+           // Direct Google Translate TTS URL
+           const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
            sentenceAudioRef.current.src = url;
            sentenceAudioRef.current.playbackRate = currentVoiceSettings.speed;
            
@@ -473,18 +429,15 @@ export default function App() {
            };
            
            sentenceAudioRef.current.onerror = (e) => {
-               console.warn("Google TTS URL Failed (Network/CORS), switching to fallback", e);
+               console.warn("Google TTS Error/Block, trying fallback to browser native", e);
                speakNativeFallback(text);
            };
 
-           const playPromise = sentenceAudioRef.current.play();
-           if (playPromise !== undefined) {
-               playPromise.catch(e => {
-                   console.error("Play error (Likely Blocked):", e);
-                   // If blocked or empty src, fallback immediately
-                   speakNativeFallback(text);
-               });
-           }
+           sentenceAudioRef.current.play().catch(e => {
+               console.error("Play error:", e);
+               // If blocked or empty src, fallback
+               speakNativeFallback(text);
+           });
        }
     } 
     // Method 2: Browser Native (SpeechSynthesis)
@@ -509,16 +462,9 @@ export default function App() {
         } else {
              // Generic Vietnamese fallback if Google fails and no settings provided
              const voices = window.speechSynthesis.getVoices();
-             // Prioritize "Google Tiếng Việt" strictly if falling back from Google Online URL
-             const googleViVoice = voices.find(v => v.name === "Google Tiếng Việt" || v.name === "Google Vietnamese");
-             const anyViVoice = voices.find(v => v.lang === "vi-VN" || v.lang.includes("vi"));
-             
+             const viVoice = voices.find(v => v.lang.includes('vi'));
              utterance.lang = 'vi-VN';
-             if (googleViVoice) {
-                 utterance.voice = googleViVoice;
-             } else if (anyViVoice) {
-                 utterance.voice = anyViVoice;
-             }
+             if (viVoice) utterance.voice = viVoice;
              utterance.rate = 1.0;
         }
 
@@ -533,9 +479,6 @@ export default function App() {
         };
 
         utterance.onerror = (e) => {
-            // Fix: Ignore interrupted/canceled events that occur during sentence switching
-            if (e.error === 'interrupted' || e.error === 'canceled') return;
-
             console.error("Browser TTS Error", e);
             // Skip to next if error to prevent getting stuck
             if (isReadingInstant && currentSentenceIndex < storySentences.length - 1) {
@@ -548,16 +491,44 @@ export default function App() {
   };
 
   const handleEndOfStory = () => {
-      setIsReadingInstant(false);
-      setCurrentSentenceIndex(-1);
+      if (playlist.length > 0 && currentTrackIndex < playlist.length - 1) {
+           setIsReadingInstant(false); 
+           setCurrentTrackIndex(prev => prev + 1);
+      } else {
+           setIsReadingInstant(false);
+           setCurrentSentenceIndex(-1);
+      }
   };
+
+  const playAll = () => {
+    if (playlist.length === 0) {
+      if (selectedStory) {
+        addToPlaylist(selectedStory);
+        setCurrentTrackIndex(0);
+      }
+    } else {
+      setCurrentTrackIndex(0);
+    }
+  };
+
+  useEffect(() => {
+    if (currentTrackIndex >= 0 && currentTrackIndex < playlist.length) {
+      const track = playlist[currentTrackIndex];
+      setSelectedStory(track); 
+      setGalleryImages(track.imageUrls || (track.imageUrl ? [track.imageUrl] : []));
+      const newSentences = parseContentToSentences(track.content);
+      setStorySentences(newSentences);
+      setTimeout(() => {
+          stopAllAudio(); 
+          setIsReadingInstant(true);
+          setCurrentSentenceIndex(0);
+      }, 500);
+    }
+  }, [currentTrackIndex]);
 
   const safePlayAudio = async () => {
     if (!audioRef.current) return;
     try {
-      if (audioContextRef.current?.state === 'suspended') {
-          audioContextRef.current.resume();
-      }
       await audioRef.current.play();
       setIsPlayingAI(true);
     } catch (error) { setIsPlayingAI(false); }
@@ -650,7 +621,7 @@ export default function App() {
           <div className="flex-1 bg-white rounded-2xl shadow-sm border border-blue-100 overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-100 bg-blue-50/50 flex justify-between items-center">
               <h3 className="font-bold text-blue-800 flex items-center gap-2">
-                <BookOpen size={18} /> Danh Sách Truyện
+                <ListMusic size={18} /> Danh Sách Truyện
               </h3>
               <span className="text-xs font-semibold bg-white px-2 py-1 rounded-md border text-gray-500">
                 {filteredStories.length} truyện
@@ -662,8 +633,7 @@ export default function App() {
                   <div 
                     key={story.id}
                     onClick={() => handleSelectStory(story)}
-                    onDoubleClick={() => handleSelectStory(story)}
-                    className={`p-3 rounded-xl cursor-pointer transition-all border group relative ${selectedStory?.id === story.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'hover:bg-gray-50 border-transparent hover:border-gray-100'}`}
+                    className={`p-3 rounded-xl cursor-pointer transition-all border ${selectedStory?.id === story.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'hover:bg-gray-50 border-transparent hover:border-gray-100'}`}
                   >
                     <div className="flex justify-between items-start">
                       <h4 className={`font-bold ${selectedStory?.id === story.id ? 'text-blue-700' : 'text-gray-700'}`}>
@@ -672,23 +642,6 @@ export default function App() {
                       {story.category === 'World' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded">Internet</span>}
                     </div>
                     <p className="text-xs text-gray-500 line-clamp-2 mt-1">{story.content}</p>
-                    
-                    {/* Select Button */}
-                    <div className="mt-2 flex justify-end">
-                       <button
-                          onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectStory(story);
-                          }}
-                          className={`text-xs px-3 py-1.5 rounded-full flex items-center gap-1 font-bold transition-all shadow-sm
-                             ${selectedStory?.id === story.id 
-                               ? 'bg-blue-600 text-white' 
-                               : 'bg-white text-blue-600 border border-blue-100 hover:bg-blue-50'
-                             }`}
-                       >
-                          <BookOpen size={12}/> {selectedStory?.id === story.id ? 'Đang đọc' : 'Đọc truyện này'}
-                       </button>
-                    </div>
                   </div>
                 ))
               ) : (
@@ -799,15 +752,15 @@ export default function App() {
                   <FileDown size={20} />
                 </button>
               )}
+              <button 
+                onClick={() => selectedStory && addToPlaylist(selectedStory)}
+                disabled={isExpandingContent}
+                className="bg-white/90 backdrop-blur p-2 rounded-full shadow-md hover:bg-white text-blue-600 transition-all disabled:opacity-50 z-20"
+                title="Thêm vào Playlist"
+              >
+                <ListMusic size={20} />
+              </button>
             </div>
-          </div>
-
-          {/* UNIVERSAL AUDIO VISUALIZER */}
-          <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-lg relative h-28">
-             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {/* Visualizer Background */}
-             </div>
-             <AudioVisualizer analyser={analyser} isPlaying={isPlayingAI || isReadingInstant} />
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 space-y-4 relative">
@@ -833,7 +786,7 @@ export default function App() {
                       </button>
                       <div>
                           <h4 className="font-bold text-blue-900 text-sm uppercase flex items-center gap-1">
-                             GIỌNG ĐỌC GOOGLE
+                             Đọc Ngay (Màu chữ)
                           </h4>
                           <div className="flex gap-2">
                              <select 
@@ -869,9 +822,9 @@ export default function App() {
                    <div className="flex items-start justify-between mb-3">
                         <div>
                             <h4 className="font-bold text-indigo-900 text-sm uppercase flex items-center gap-1">
-                                <Sparkles size={14}/> TẠO GIỌNG ĐỌC TRUYỀN CẢM
+                                <Sparkles size={14}/> Tạo File HQ
                             </h4>
-                            <p className="text-xs text-indigo-600">AI Voice Chất Lượng Cao</p>
+                            <p className="text-xs text-indigo-600">AI Voice & Tự động lưu</p>
                         </div>
                         <select 
                         className="text-xs p-1 rounded border border-indigo-200 bg-white max-w-[120px]"
@@ -892,8 +845,16 @@ export default function App() {
                                {isPlayingAI ? <Pause size={24} fill="currentColor"/> : <Play size={24} fill="currentColor" className="ml-1"/>}
                             </button>
                             
-                            <div className="flex-1 h-12 bg-indigo-100 rounded-lg flex items-center justify-center border border-indigo-200 text-indigo-400 text-xs font-medium">
-                                Sẵn sàng phát
+                            <div className="flex-1 h-12 bg-indigo-200/50 rounded-lg overflow-hidden flex items-center justify-center border border-indigo-200">
+                                {isPlayingAI ? (
+                                    <AudioVisualizer audioElement={audioRef.current} isPlaying={isPlayingAI} />
+                                ) : (
+                                    <div className="flex gap-1 h-4 items-end opacity-50">
+                                        {[1,2,3,4,5,4,3,2,1].map((h,i) => (
+                                            <div key={i} className="w-1 bg-indigo-500 rounded-t-sm" style={{height: h*4 + 'px'}}></div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <a href={audioUrl} download={`${selectedStory?.title}.wav`} className="p-2 bg-white text-indigo-600 border border-indigo-200 rounded-full hover:bg-indigo-50 shadow-sm" title="Tải về máy">
@@ -913,9 +874,45 @@ export default function App() {
                </div>
 
             </div>
+
+            <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+               <button onClick={() => setShowPlaylist(true)} className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-bold">
+                  <ListMusic size={16} /> Danh sách phát ({playlist.length})
+               </button>
+               <button onClick={playAll} disabled={playlist.length === 0} className="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-900 disabled:opacity-50">
+                  Đọc toàn bộ
+               </button>
+            </div>
           </div>
         </div>
       </main>
+
+      {showPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-blue-50">
+              <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2"><ListMusic size={20} /> Danh Sách Phát</h3>
+              <button onClick={() => setShowPlaylist(false)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={24} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {playlist.length === 0 ? <p className="text-center text-gray-400 py-4">Trống</p> : 
+                playlist.map((item, index) => (
+                  <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${currentTrackIndex === index ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-100'}`}>
+                    <div className="flex-1 min-w-0 mr-3">
+                      <p className={`font-bold text-sm truncate ${currentTrackIndex === index ? 'text-indigo-700' : 'text-gray-700'}`}>{index + 1}. {item.title}</p>
+                    </div>
+                    <button onClick={() => removeFromPlaylist(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+                  </div>
+                ))
+              }
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+               <button onClick={() => { setPlaylist([]); stopAllAudio(); }} className="text-red-600 text-sm font-bold px-3">Xóa hết</button>
+               <button onClick={() => setShowPlaylist(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm">Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <audio ref={audioRef} src={audioUrl || undefined} onTimeUpdate={handleTimeUpdate} onEnded={() => setIsPlayingAI(false)} className="hidden" />
       {/* Removed crossOrigin to prevent CORS errors with Google TTS */}
