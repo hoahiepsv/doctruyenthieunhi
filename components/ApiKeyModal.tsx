@@ -13,7 +13,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, hasKey }) => {
   const [keyInput, setKeyInput] = useState('');
   const [error, setError] = useState('');
 
-  const VIP_KEY = "AIzaSyDsYJl1FT3aE73HcfNqWxXu8pI4FgqiVdo";
+  const VIP_KEY = "AIzaSyBm8W2kE5AN2vHkqfjfMCarnV5DjRjgD5k";
   const VIP_PASS = "0983676470";
 
   useEffect(() => {
