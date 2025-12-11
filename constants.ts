@@ -1,4 +1,5 @@
-import { Story, VoiceOption } from './types';
+
+import { Story, VoiceOption, InstantVoice } from './types';
 
 // Helper để tạo nhanh dữ liệu
 const createStory = (id: string, title: string, category: Story['category'], contentSnippet: string, moral: string): Story => ({
@@ -175,6 +176,7 @@ export const INITIAL_STORIES: Story[] = [
   ...CHINA_STORIES
 ];
 
+// Giọng cho phần Download HQ (Gemini AI)
 export const VOICES: VoiceOption[] = [
   { id: 'v1', name: 'Bé Na (Kể chuyện)', gender: 'Nữ', ageGroup: 'Trẻ em', geminiVoiceName: 'Puck' },
   { id: 'v2', name: 'Anh Tuấn (Trầm ấm)', gender: 'Nam', ageGroup: 'Thanh niên', geminiVoiceName: 'Charon' },
@@ -184,4 +186,12 @@ export const VOICES: VoiceOption[] = [
   { id: 'v6', name: 'Ông Bụt (Cổ tích)', gender: 'Nam', ageGroup: 'Người già', geminiVoiceName: 'Fenrir' }, 
   { id: 'v7', name: 'Bà Tiên (Nhẹ nhàng)', gender: 'Nữ', ageGroup: 'Người già', geminiVoiceName: 'Kore' },
   { id: 'v8', name: 'Cậu Bé (Tinh nghịch)', gender: 'Nam', ageGroup: 'Trẻ em', geminiVoiceName: 'Puck' },
+];
+
+// Giọng cho phần Đọc Ngay (Instant Read) - Hybrid
+export const INSTANT_VOICES_PRESETS: InstantVoice[] = [
+  { id: 'google-normal', name: 'Google: Chị Google (Chuẩn)', type: 'google-online', lang: 'vi', speed: 1.0 },
+  { id: 'google-slow', name: 'Google: Kể Chuyện (Chậm rãi)', type: 'google-online', lang: 'vi', speed: 0.85 }, // Slow down for storytelling
+  { id: 'google-fast', name: 'Google: Vui Vẻ (Nhanh)', type: 'google-online', lang: 'vi', speed: 1.15 },
+  // Native voices will be added dynamically at runtime
 ];
