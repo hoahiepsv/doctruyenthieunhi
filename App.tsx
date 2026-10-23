@@ -9,6 +9,7 @@ import { StoryReaderFrame } from './components/StoryReaderFrame';
 import { BedtimeAudioBar } from './components/BedtimeAudioBar';
 import { StoryListSidebar } from './components/StoryListSidebar';
 import { AddStoryModal } from './components/AddStoryModal';
+import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { offlineSpeech, bedtimeSound } from './utils/offlineSpeech';
 
 export default function App() {
@@ -58,7 +59,12 @@ export default function App() {
   const [totalParagraphs, setTotalParagraphs] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
   const [autoPlayNext, setAutoPlayNext] = useState(true);
-  const [speechMode, setSpeechMode] = useState<'natural' | 'device'>('natural');
+  const [speechMode, setSpeechMode] = useState<'device' | 'natural'>(() => {
+    return (localStorage.getItem('preferred_speech_mode') as any) || 'device';
+  });
+  const [selectedDeviceVoiceURI, setSelectedDeviceVoiceURI] = useState<string>(() => {
+    return localStorage.getItem('preferred_voice_uri') || '';
+  });
 
   // Sleep Timer
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number>(0);
@@ -67,6 +73,7 @@ export default function App() {
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
   const [showAppInfo, setShowAppInfo] = useState(false);
 
   // Save preferences
@@ -108,6 +115,10 @@ export default function App() {
         if (autoPlayNext) {
           handleNextStory();
         }
+      },
+      () => {
+        // No Vietnamese voice on device: open voice settings modal
+        setIsVoiceSettingsOpen(true);
       }
     );
 
@@ -304,6 +315,15 @@ export default function App() {
           {/* Quick Header Actions */}
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsVoiceSettingsOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+              title="Cài đặt giọng nói Tiếng Việt Offline trên máy"
+            >
+              <Volume2 size={16} />
+              <span className="hidden md:inline">Cài Đặt Giọng Offline</span>
+            </button>
+
+            <button
               onClick={() => setIsAddModalOpen(true)}
               className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-xs flex items-center gap-1.5 shadow-md transition-all"
               title="Thêm truyện mới của bạn (Lưu offline)"
@@ -399,6 +419,19 @@ export default function App() {
         sleepTimerMinutes={sleepTimerMinutes}
         onSetSleepTimer={setSleepTimerMinutes}
         sleepTimerRemainingSeconds={sleepTimerRemainingSeconds}
+        speechMode={speechMode}
+        onSetSpeechMode={setSpeechMode}
+        onOpenVoiceSettings={() => setIsVoiceSettingsOpen(true)}
+        selectedDeviceVoiceURI={selectedDeviceVoiceURI}
+        onSelectDeviceVoiceURI={setSelectedDeviceVoiceURI}
+      />
+
+      {/* --- MODAL: VOICE SETTINGS & OFFLINE SETUP GUIDE --- */}
+      <VoiceSettingsModal
+        isOpen={isVoiceSettingsOpen}
+        onClose={() => setIsVoiceSettingsOpen(false)}
+        selectedVoiceURI={selectedDeviceVoiceURI}
+        onSelectVoiceURI={setSelectedDeviceVoiceURI}
         speechMode={speechMode}
         onSetSpeechMode={setSpeechMode}
       />
