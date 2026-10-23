@@ -29,6 +29,9 @@ interface BedtimeAudioBarProps {
   sleepTimerRemainingSeconds: number | null;
   speechMode: 'natural' | 'device';
   onSetSpeechMode: (mode: 'natural' | 'device') => void;
+  onOpenVoiceSettings: () => void;
+  selectedDeviceVoiceURI: string;
+  onSelectDeviceVoiceURI: (uri: string) => void;
 }
 
 export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
@@ -52,22 +55,25 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
   sleepTimerRemainingSeconds,
   speechMode,
   onSetSpeechMode,
+  onOpenVoiceSettings,
+  selectedDeviceVoiceURI,
+  onSelectDeviceVoiceURI,
 }) => {
   const [readingSpeed, setReadingSpeed] = useState<number>(1.0);
   const [ambientSound, setAmbientSound] = useState<'harp' | 'rain' | 'off'>('off');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [deviceVoices, setDeviceVoices] = useState<VoiceInfo[]>([]);
-  const [selectedDeviceVoiceURI, setSelectedDeviceVoiceURI] = useState<string>('');
 
   useEffect(() => {
+    universalSpeech.loadDeviceVoices();
     const voices = universalSpeech.getDeviceVoices();
     setDeviceVoices(voices);
 
     const vn = voices.filter(v => v.isVietnamese);
-    if (vn.length > 0) {
-      setSelectedDeviceVoiceURI(vn[0].voiceURI || vn[0].name);
+    if (vn.length > 0 && !selectedDeviceVoiceURI) {
+      onSelectDeviceVoiceURI(vn[0].voiceURI || vn[0].name);
     }
-  }, []);
+  }, [selectedDeviceVoiceURI, onSelectDeviceVoiceURI]);
 
   const handleSpeedChange = (speed: number) => {
     setReadingSpeed(speed);
@@ -195,6 +201,23 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
                 <span className="hidden md:inline">Tiếng mưa</span>
               </button>
             </div>
+
+            {/* Offline Voice Settings Button */}
+            <button
+              onClick={onOpenVoiceSettings}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                vnDeviceVoices.length > 0
+                  ? 'bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border-emerald-500/40'
+                  : 'bg-amber-800/80 hover:bg-amber-700 text-amber-200 border-amber-500/40'
+              }`}
+              title="Cài đặt & kiểm tra giọng nói Tiếng Việt offline trên máy"
+            >
+              <Volume2 size={14} className={vnDeviceVoices.length > 0 ? "text-emerald-400" : "text-amber-400"} />
+              <span className="hidden sm:inline">
+                {vnDeviceVoices.length > 0 ? `Giọng Offline (${vnDeviceVoices.length})` : 'Cài Giọng Offline'}
+              </span>
+              <span className="sm:hidden">Giọng</span>
+            </button>
 
             {/* Test Voice Quick Button */}
             <button
