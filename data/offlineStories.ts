@@ -906,7 +906,10 @@ Khi thuyền ra đến giữa đại dương bao la, Mã Lương vung bút vẽ 
 
 Trừ xong loài tàn bạo, Mã Lương lại mang cây bút thần chu du khắp bốn phương trời, vẽ trường học, vẽ ruộng đồng trĩu hạt mang lại ấm no, hạnh phúc cho nhân dân nghèo khổ.`
   }
-];
+].map(story => ({
+  ...story,
+  audioUrl: `/audio/stories/${story.id}.mp3`
+}));
 
 export const CATEGORIES_LIST: { id: Story['category'] | 'All'; label: string; icon: string }[] = [
   { id: 'All', label: 'Tất Cả Truyện', icon: '📚' },
