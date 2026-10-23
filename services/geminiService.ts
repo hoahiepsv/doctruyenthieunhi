@@ -84,14 +84,27 @@ export const searchStories = async (query: string): Promise<Story[]> => {
 export const expandStory = async (title: string, currentContent: string): Promise<string> => {
   if (!genAI) throw new Error("API Key not set");
 
-  const response = await genAI.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: `Hãy kể lại câu chuyện "${title}" một cách chi tiết, hấp dẫn cho trẻ em. 
-    Nội dung hiện tại: "${currentContent}". 
-    Hãy viết lại đầy đủ, giọng văn kể chuyện nhẹ nhàng, trong sáng.`,
-  });
+  // Prompt được tối ưu để kể chuyện chi tiết, đầy đủ
+  const prompt = `Bạn là một người kể chuyện cuốn hút cho trẻ em. Hãy kể lại toàn bộ câu chuyện cổ tích "${title}" một cách chi tiết, đầy đủ từ đầu đến cuối.
+  
+  Yêu cầu quan trọng:
+  1. Tuyệt đối KHÔNG tóm tắt. Phải kể đầy đủ diễn biến, lời thoại nhân vật.
+  2. Văn phong nhẹ nhàng, trong sáng, phù hợp với giọng văn nói để đọc cho bé nghe.
+  3. Giữ nguyên ý nghĩa giáo dục và đạo đức.
+  
+  Nội dung gốc tham khảo (nếu có): "${currentContent}".`;
 
-  return response.text || currentContent;
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    return response.text || currentContent;
+  } catch (error) {
+    console.error("Expand story error:", error);
+    return currentContent;
+  }
 };
 
 /**
