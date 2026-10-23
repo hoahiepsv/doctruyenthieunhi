@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Play, Pause, Square, SkipForward, Volume2, Clock, 
   Music, Sparkles, Moon, Sun, Settings2, ShieldCheck, ChevronUp, ChevronDown,
-  VolumeX, Check, AlertCircle, Headphones
+  VolumeX, Check, AlertCircle, Headphones, HardDriveDownload
 } from 'lucide-react';
 import { VoiceOption } from '../types';
 import { SLEEP_TIMER_OPTIONS } from '../constants';
@@ -27,8 +27,8 @@ interface BedtimeAudioBarProps {
   sleepTimerMinutes: number;
   onSetSleepTimer: (minutes: number) => void;
   sleepTimerRemainingSeconds: number | null;
-  speechMode: 'natural' | 'device';
-  onSetSpeechMode: (mode: 'natural' | 'device') => void;
+  speechMode: 'bundled' | 'device' | 'natural';
+  onSetSpeechMode: (mode: 'bundled' | 'device' | 'natural') => void;
   onOpenVoiceSettings: () => void;
   selectedDeviceVoiceURI: string;
   onSelectDeviceVoiceURI: (uri: string) => void;
@@ -80,13 +80,14 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
     universalSpeech.updateSettings({ rate: speed });
   };
 
-  const handleModeChange = (mode: 'natural' | 'device') => {
+  const handleModeChange = (mode: 'bundled' | 'device' | 'natural') => {
     onSetSpeechMode(mode);
     universalSpeech.updateSettings({ mode });
+    localStorage.setItem('preferred_speech_mode', mode);
   };
 
   const handleDeviceVoiceSelect = (voiceURI: string) => {
-    setSelectedDeviceVoiceURI(voiceURI);
+    onSelectDeviceVoiceURI(voiceURI);
     universalSpeech.updateSettings({ deviceVoiceURI: voiceURI });
   };
 
@@ -110,6 +111,31 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
     : 0;
 
   const vnDeviceVoices = deviceVoices.filter(v => v.isVietnamese);
+
+  const modeBadge = () => {
+    if (speechMode === 'bundled') {
+      return (
+        <span className="text-[10px] bg-emerald-950/80 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 font-semibold">
+          <HardDriveDownload size={11} className="text-emerald-400" />
+          <span>Giọng Sẵn Trong Nguồn (100% Offline)</span>
+        </span>
+      );
+    }
+    if (speechMode === 'device') {
+      return (
+        <span className="text-[10px] bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1 font-semibold">
+          <Headphones size={11} className="text-amber-400" />
+          <span>Giọng Thiết Bị (Web Speech)</span>
+        </span>
+      );
+    }
+    return (
+      <span className="text-[10px] bg-sky-950/80 text-sky-300 px-2 py-0.5 rounded-md border border-sky-500/30 flex items-center gap-1 font-semibold">
+        <Headphones size={11} className="text-sky-400" />
+        <span>Giọng Trực Tuyến</span>
+      </span>
+    );
+  };
 
   return (
     <div className="sticky bottom-3 z-30 max-w-4xl mx-auto w-full px-2 sm:px-4 transition-all duration-300 font-quicksand">
@@ -155,10 +181,7 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
                   {isPlaying ? (isPaused ? "Đang tạm dừng" : "Đang kể Tiếng Việt") : "Sẵn sàng đọc"}
                 </span>
 
-                <span className="text-[10px] bg-emerald-950/80 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1 font-semibold">
-                  <Headphones size={10} />
-                  <span>{speechMode === 'natural' ? 'Giọng Đọc Chuẩn Tiếng Việt' : 'Giọng Thiết Bị'}</span>
-                </span>
+                {modeBadge()}
 
                 {sleepTimerRemainingSeconds !== null && sleepTimerRemainingSeconds > 0 && (
                   <span className="text-[10px] text-amber-300 flex items-center gap-1 bg-amber-900/40 px-1.5 py-0.5 rounded">
@@ -206,15 +229,15 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
             <button
               onClick={onOpenVoiceSettings}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
-                vnDeviceVoices.length > 0
+                speechMode === 'bundled'
                   ? 'bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border-emerald-500/40'
                   : 'bg-amber-800/80 hover:bg-amber-700 text-amber-200 border-amber-500/40'
               }`}
-              title="Cài đặt & kiểm tra giọng nói Tiếng Việt offline trên máy"
+              title="Cài đặt nguồn giọng nói & kiểm tra giọng offline"
             >
-              <Volume2 size={14} className={vnDeviceVoices.length > 0 ? "text-emerald-400" : "text-amber-400"} />
+              <Volume2 size={14} className={speechMode === 'bundled' ? "text-emerald-400" : "text-amber-400"} />
               <span className="hidden sm:inline">
-                {vnDeviceVoices.length > 0 ? `Giọng Offline (${vnDeviceVoices.length})` : 'Cài Giọng Offline'}
+                {speechMode === 'bundled' ? 'Giọng Sẵn Offline' : 'Cài Đặt Giọng'}
               </span>
               <span className="sm:hidden">Giọng</span>
             </button>
@@ -274,29 +297,31 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
             {/* Speech Mode Toggle (Crucial Fix for Vietnamese reading) */}
             <div className="space-y-2">
               <span className="font-bold text-amber-300 block flex items-center gap-1">
-                🗣️ Chế Độ Giọng Đọc Tiếng Việt:
+                🗣️ Chọn Nguồn Giọng Tiếng Việt:
               </span>
 
               <div className="space-y-1.5">
+                {/* Mode 1: Bundled (DEFAULT) */}
                 <button
-                  onClick={() => handleModeChange('natural')}
+                  onClick={() => handleModeChange('bundled')}
                   className={`w-full p-2.5 rounded-xl text-left border transition-all flex flex-col ${
-                    speechMode === 'natural'
+                    speechMode === 'bundled'
                       ? 'bg-amber-500 text-stone-950 border-amber-400 font-bold shadow-md'
                       : 'bg-stone-900/60 text-amber-200 border-amber-500/20 hover:bg-stone-800'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>🌟 Giọng Chuẩn Tiếng Việt</span>
+                    <span>🌟 Giọng Thu Sẵn Trong Source (100% Offline)</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-800 text-emerald-100 font-normal">
-                      Khuyên dùng
+                      Mặc định
                     </span>
                   </div>
-                  <span className={`text-[10px] mt-0.5 ${speechMode === 'natural' ? 'text-stone-900' : 'text-amber-300/70'}`}>
-                    Ngữ điệu tự nhiên, dấu thanh chuẩn 100%, không cần cài đặt thêm.
+                  <span className={`text-[10px] mt-0.5 ${speechMode === 'bundled' ? 'text-stone-900' : 'text-amber-300/70'}`}>
+                    Có sẵn trong mã nguồn. 100% không cần mạng, không bao giờ treo, phát âm chuẩn truyền cảm.
                   </span>
                 </button>
 
+                {/* Mode 2: Device Synth */}
                 <button
                   onClick={() => handleModeChange('device')}
                   className={`w-full p-2.5 rounded-xl text-left border transition-all flex flex-col ${
@@ -306,13 +331,33 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>📱 Giọng Máy Thiết Bị (Offline)</span>
+                    <span>📱 Giọng Máy Thiết Bị (Web Speech)</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-700 text-amber-100 font-normal">
                       {vnDeviceVoices.length > 0 ? `${vnDeviceVoices.length} giọng VN` : 'Cần gói giọng'}
                     </span>
                   </div>
                   <span className={`text-[10px] mt-0.5 ${speechMode === 'device' ? 'text-stone-900' : 'text-amber-300/70'}`}>
-                    Sử dụng giọng có sẵn trên điện thoại / máy tính của bạn.
+                    Sử dụng công nghệ tổng hợp giọng nói của máy (Windows/Android/iOS).
+                  </span>
+                </button>
+
+                {/* Mode 3: Natural Online */}
+                <button
+                  onClick={() => handleModeChange('natural')}
+                  className={`w-full p-2 rounded-xl text-left border transition-all flex flex-col ${
+                    speechMode === 'natural'
+                      ? 'bg-amber-500 text-stone-950 border-amber-400 font-bold shadow-md'
+                      : 'bg-stone-900/60 text-amber-200 border-amber-500/20 hover:bg-stone-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>🌐 Giọng Trực Tuyến</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-700 text-amber-100 font-normal">
+                      Cần mạng
+                    </span>
+                  </div>
+                  <span className={`text-[10px] mt-0.5 ${speechMode === 'natural' ? 'text-stone-900' : 'text-amber-300/70'}`}>
+                    Tự động chuyển sang giọng sẵn nếu mất mạng.
                   </span>
                 </button>
               </div>
@@ -348,7 +393,7 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
                     </select>
                   ) : (
                     <p className="text-[10px] text-amber-400 italic">
-                      Đang tìm giọng máy... Hãy thử chuyển sang "Giọng Chuẩn Tiếng Việt" ở trên.
+                      Đang tìm giọng máy...
                     </p>
                   )}
                 </div>
@@ -427,7 +472,7 @@ export const BedtimeAudioBar: React.FC<BedtimeAudioBarProps> = ({
 
               <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-amber-300/80 bg-stone-900/40 p-2 rounded-xl">
                 <ShieldCheck size={14} className="text-emerald-400 flex-shrink-0" />
-                <span>Không cần khóa API. Phát âm chuẩn tiếng mẹ đẻ cho bé.</span>
+                <span>Hoạt động hoàn toàn Offline. Giọng đọc Tiếng Việt ấm áp sẵn trong nguồn.</span>
               </div>
             </div>
 

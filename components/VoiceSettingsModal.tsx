@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Volume2, Check, RefreshCw, AlertCircle, Headphones, 
-  Monitor, Smartphone, Apple, Globe, Sparkles, Play, Square, ThumbsUp
+  Monitor, Smartphone, Apple, Globe, Sparkles, Play, Square, ThumbsUp, HardDriveDownload
 } from 'lucide-react';
 import { universalSpeech, VoiceInfo } from '../utils/offlineSpeech';
 
@@ -10,8 +10,8 @@ interface VoiceSettingsModalProps {
   onClose: () => void;
   selectedVoiceURI: string;
   onSelectVoiceURI: (uri: string) => void;
-  speechMode: 'device' | 'natural';
-  onSetSpeechMode: (mode: 'device' | 'natural') => void;
+  speechMode: 'bundled' | 'device' | 'natural';
+  onSetSpeechMode: (mode: 'bundled' | 'device' | 'natural') => void;
 }
 
 export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
@@ -62,22 +62,19 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     universalSpeech.updateSettings({ rate: testSpeed });
     universalSpeech.testVoiceSample(speechMode, selectedVoiceURI, sampleText);
 
-    // Auto reset testing state after a short duration
     setTimeout(() => {
       setIsTesting(false);
     }, 6000);
   };
 
   const handleSaveDefault = () => {
-    if (selectedVoiceURI) {
-      universalSpeech.updateSettings({
-        deviceVoiceURI: selectedVoiceURI,
-        mode: speechMode,
-        rate: testSpeed
-      });
-      localStorage.setItem('preferred_voice_uri', selectedVoiceURI);
-      localStorage.setItem('preferred_speech_mode', speechMode);
-    }
+    universalSpeech.updateSettings({
+      deviceVoiceURI: selectedVoiceURI,
+      mode: speechMode,
+      rate: testSpeed
+    });
+    localStorage.setItem('preferred_voice_uri', selectedVoiceURI);
+    localStorage.setItem('preferred_speech_mode', speechMode);
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 2500);
   };
@@ -104,82 +101,99 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             <Volume2 size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-bold font-serif-story">Cài Đặt Giọng Nói Tiếng Việt Offline</h3>
-            <p className="text-xs text-amber-800">Cấu hình giọng đọc trên thiết bị & hướng dẫn cài đặt gói giọng nói</p>
+            <h3 className="text-xl font-bold font-serif-story">Cài Đặt Nguồn Giọng Đọc Tiếng Việt Offline</h3>
+            <p className="text-xs text-amber-800">100% Offline không treo máy • Giọng thu sẵn trong nguồn & giọng thiết bị</p>
           </div>
         </div>
 
         {/* Status Alert Banner */}
         <div className="mb-5">
-          {hasVnVoice ? (
-            <div className="p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex items-start gap-3 text-xs text-emerald-900">
-              <Check size={20} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm text-emerald-950">
-                  Tuyệt vời! Đã phát hiện {vnVoices.length} giọng đọc Tiếng Việt offline trên máy bạn
-                </p>
-                <p className="mt-0.5 text-emerald-800">
-                  Bạn có thể chọn giọng đọc mong muốn bên dưới và nghe thử trực tiếp.
-                </p>
-              </div>
+          <div className="p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex items-start gap-3 text-xs text-emerald-900">
+            <HardDriveDownload size={22} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm text-emerald-950">
+                Toàn bộ 26 câu chuyện đã tải sẵn file âm thanh Tiếng Việt trong mã nguồn ứng dụng!
+              </p>
+              <p className="mt-0.5 text-emerald-800">
+                Chế độ <strong>"Giọng Thu Sẵn Trong Source"</strong> hoạt động 100% offline, không bao giờ bị nghẽn mạng hay treo máy. Bạn có thể nghe bất cứ lúc nào.
+              </p>
             </div>
-          ) : (
-            <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950">
-              <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm text-amber-900">
-                  Chưa phát hiện gói giọng nói Tiếng Việt offline trên thiết bị này
-                </p>
-                <p className="mt-0.5 text-amber-800">
-                  Đừng lo! Bạn có thể làm theo <strong>hướng dẫn cài đặt 1 phút bên dưới</strong> để tải giọng offline, hoặc chuyển sang chế độ <strong>Giọng Trực Tuyến</strong> để nghe đọc ngay mà không cần cài đặt.
-                </p>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Section 1: Mode Switcher & Voice Selection */}
+        {/* Section 1: Mode Switcher */}
         <div className="bg-white/80 rounded-2xl p-4 border border-amber-200/80 mb-5 space-y-4 shadow-sm">
           <h4 className="font-bold text-xs uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
             <Sparkles size={16} className="text-amber-600" />
-            <span>1. Chọn Chế Độ & Giọng Đọc</span>
+            <span>1. Chọn Chế Độ Phát Giọng Nói</span>
           </h4>
 
-          {/* Mode Selector */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Mode Selector - 3 Choices */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            
+            {/* Mode 1: Bundled */}
+            <button
+              onClick={() => onSetSpeechMode('bundled')}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                speechMode === 'bundled'
+                  ? 'bg-amber-100/90 border-amber-500 shadow-sm ring-2 ring-amber-400/30'
+                  : 'bg-stone-50 border-stone-200 hover:bg-amber-50/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-stone-900">🌟 Giọng Thu Sẵn</span>
+                {speechMode === 'bundled' && <Check size={16} className="text-emerald-700" />}
+              </div>
+              <span className="inline-block my-1 text-[10px] px-1.5 py-0.2 rounded bg-emerald-700 text-white font-bold">
+                Khuyên dùng
+              </span>
+              <p className="text-[11px] text-stone-600">
+                Lưu sẵn trong source. Chuẩn truyền cảm, không cần mạng, không lo gián đoạn.
+              </p>
+            </button>
+
+            {/* Mode 2: Device */}
             <button
               onClick={() => onSetSpeechMode('device')}
               className={`p-3 rounded-xl border-2 text-left transition-all ${
                 speechMode === 'device'
-                  ? 'bg-amber-100/90 border-amber-500 shadow-sm'
+                  ? 'bg-amber-100/90 border-amber-500 shadow-sm ring-2 ring-amber-400/30'
                   : 'bg-stone-50 border-stone-200 hover:bg-amber-50/50'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-stone-900">📱 Giọng Thiết Bị (Offline 100%)</span>
+                <span className="font-bold text-xs text-stone-900">📱 Giọng Thiết Bị</span>
                 {speechMode === 'device' && <Check size={16} className="text-amber-700" />}
               </div>
-              <p className="text-[11px] text-stone-600 mt-1">
-                Đọc hoàn toàn không cần internet bằng gói giọng của máy.
+              <span className="inline-block my-1 text-[10px] px-1.5 py-0.2 rounded bg-amber-700 text-white font-bold">
+                {vnVoices.length > 0 ? `${vnVoices.length} giọng VN` : 'Cần gói giọng'}
+              </span>
+              <p className="text-[11px] text-stone-600">
+                Sử dụng giọng nói tổng hợp trên máy (Web Speech API). Hữu ích cho truyện tự thêm.
               </p>
             </button>
 
+            {/* Mode 3: Natural */}
             <button
               onClick={() => onSetSpeechMode('natural')}
               className={`p-3 rounded-xl border-2 text-left transition-all ${
                 speechMode === 'natural'
-                  ? 'bg-amber-100/90 border-amber-500 shadow-sm'
+                  ? 'bg-amber-100/90 border-amber-500 shadow-sm ring-2 ring-amber-400/30'
                   : 'bg-stone-50 border-stone-200 hover:bg-amber-50/50'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-stone-900">🌟 Giọng Chuẩn Tự Nhiên (Trực Tuyến)</span>
-                {speechMode === 'natural' && <Check size={16} className="text-amber-700" />}
+                <span className="font-bold text-xs text-stone-900">🌐 Giọng Online</span>
+                {speechMode === 'natural' && <Check size={16} className="text-sky-700" />}
               </div>
-              <p className="text-[11px] text-stone-600 mt-1">
-                Phát âm chuẩn ngữ điệu mọi thiết bị, không cần cài gói giọng.
+              <span className="inline-block my-1 text-[10px] px-1.5 py-0.2 rounded bg-stone-600 text-white font-bold">
+                Cần mạng
+              </span>
+              <p className="text-[11px] text-stone-600">
+                Giọng trực tuyến. Tự động chuyển về offline nếu mất mạng.
               </p>
             </button>
+
           </div>
 
           {/* Voice Dropdown if device mode */}
@@ -187,7 +201,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold text-stone-700">
-                  Danh sách giọng nói trên máy:
+                  Danh sách giọng nói trên thiết bị của bạn:
                 </label>
                 <button
                   onClick={refreshVoices}
@@ -232,7 +246,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
           {/* Voice Tester Box */}
           <div className="pt-2 border-t border-amber-200/60">
             <label className="text-xs font-bold text-stone-700 mb-1 block">
-              Câu thử nghiệm phát âm:
+              Thử nghiệm phát âm:
             </label>
             <input
               type="text"
@@ -268,7 +282,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                   }`}
                 >
                   {isTesting ? <Square size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
-                  <span>{isTesting ? "Dừng thử" : "Nghe thử ngay"}</span>
+                  <span>{isTesting ? "Dừng thử" : "Nghe thử"}</span>
                 </button>
 
                 <button
@@ -293,7 +307,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         <div className="bg-white/80 rounded-2xl p-4 border border-amber-200/80 space-y-3 shadow-sm">
           <h4 className="font-bold text-xs uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
             <Monitor size={16} className="text-amber-600" />
-            <span>2. Hướng Dẫn Cài Gói Giọng Tiếng Việt Offline (Chỉ cần làm 1 lần)</span>
+            <span>2. Hướng Dẫn Cài Gói Giọng Tiếng Việt Bổ Sung Cho Thiết Bị</span>
           </h4>
 
           {/* OS Navigation Tabs */}
@@ -401,7 +415,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         {/* Modal Footer Actions */}
         <div className="flex items-center justify-between pt-4 mt-4 border-t border-amber-200">
           <span className="text-[11px] text-stone-500 hidden sm:inline">
-            Tác giả: Lê Hòa Hiệp - 0983.676.470
+            Tác giả phần mềm: Lê Hòa Hiệp - 0983.676.470
           </span>
 
           <div className="flex items-center gap-2 ml-auto">
