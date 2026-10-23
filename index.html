@@ -4,27 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ĐỌC TRUYỆN CỔ THIẾU NHI</title>
+    <meta name="description" content="Ứng dụng đọc truyện cổ tích thiếu nhi lưu trữ offline hoàn toàn, giao diện khung sách cổ tích ấm áp bảo vệ mắt cùng giọng đọc truyền cảm." />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       body {
         font-family: 'Quicksand', sans-serif;
       }
+      .font-serif-story {
+        font-family: 'Merriweather', Georgia, serif;
+      }
+      .font-sans-story {
+        font-family: 'Quicksand', system-ui, sans-serif;
+      }
+
       /* Custom scrollbar for webkit */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #f1f1f1; 
+        background: rgba(0, 0, 0, 0.05);
       }
       ::-webkit-scrollbar-thumb {
-        background: #3b82f6; 
-        border-radius: 4px;
+        background: #d4a373;
+        border-radius: 9999px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #2563eb; 
+        background: #bc6c25;
+      }
+
+      /* Paper texture simulation */
+      .paper-parchment {
+        background-color: #faf6ee;
+        background-image: radial-gradient(#ecdcc2 0.75px, transparent 0.75px), radial-gradient(#ecdcc2 0.75px, #faf6ee 0.75px);
+        background-size: 30px 30px;
+        background-position: 0 0, 15px 15px;
+      }
+      .paper-cream {
+        background-color: #fdfbf7;
+        background-image: radial-gradient(#f0e6d6 0.6px, #fdfbf7 0.6px);
+        background-size: 24px 24px;
+      }
+      .paper-sage {
+        background-color: #f2f7f2;
+        background-image: radial-gradient(#dce8dc 0.6px, #f2f7f2 0.6px);
+        background-size: 24px 24px;
+      }
+      .paper-night {
+        background-color: #171d28;
+        background-image: radial-gradient(#263143 0.6px, #171d28 0.6px);
+        background-size: 24px 24px;
+      }
+
+      /* Ornate frame double border */
+      .storybook-frame {
+        box-shadow: 0 10px 30px -5px rgba(117, 78, 30, 0.12), 0 0 0 1px rgba(180, 140, 90, 0.25);
       }
     </style>
   <script type="importmap">
@@ -38,9 +76,8 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-blue-50">
+  <body class="bg-[#f5efe6] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
