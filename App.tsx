@@ -59,8 +59,8 @@ export default function App() {
   const [totalParagraphs, setTotalParagraphs] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
   const [autoPlayNext, setAutoPlayNext] = useState(true);
-  const [speechMode, setSpeechMode] = useState<'device' | 'natural'>(() => {
-    return (localStorage.getItem('preferred_speech_mode') as any) || 'device';
+  const [speechMode, setSpeechMode] = useState<'bundled' | 'device' | 'natural'>(() => {
+    return (localStorage.getItem('preferred_speech_mode') as any) || 'bundled';
   });
   const [selectedDeviceVoiceURI, setSelectedDeviceVoiceURI] = useState<string>(() => {
     return localStorage.getItem('preferred_voice_uri') || '';
@@ -204,14 +204,14 @@ export default function App() {
       const nextStory = filteredStories[currentIndex + 1];
       setSelectedStory(nextStory);
       setTimeout(() => {
-        offlineSpeech.startReadingStory(nextStory.content, 0);
+        offlineSpeech.startReadingStory(nextStory, 0);
       }, 400);
     } else if (filteredStories.length > 0) {
       // Loop back to first story
       const firstStory = filteredStories[0];
       setSelectedStory(firstStory);
       setTimeout(() => {
-        offlineSpeech.startReadingStory(firstStory.content, 0);
+        offlineSpeech.startReadingStory(firstStory, 0);
       }, 400);
     }
   };
@@ -247,24 +247,9 @@ export default function App() {
     }
   };
 
-  // Print/Download Framed Story
+  // Print/Download Framed Story (100% offline native print/PDF)
   const handlePrintPdf = () => {
-    const printElem = document.getElementById('story-printable-container');
-    if (!printElem) return;
-
-    // Check if html2pdf is available
-    if (typeof (window as any).html2pdf === 'function') {
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `${selectedStory.title} - Doc Truyen Co Thieu Nhi.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      (window as any).html2pdf().from(printElem).set(opt).save();
-    } else {
-      window.print();
-    }
+    window.print();
   };
 
   // Calculate paragraph count of selected story
@@ -383,12 +368,12 @@ export default function App() {
             isPlayingSpeech={isPlayingSpeech}
             isPausedSpeech={isPausedSpeech}
             currentParagraphIndex={currentParagraphIndex}
-            onStartReading={() => offlineSpeech.startReadingStory(selectedStory.content, currentParagraphIndex)}
+            onStartReading={() => offlineSpeech.startReadingStory(selectedStory, currentParagraphIndex)}
             onPauseReading={() => offlineSpeech.pause()}
             onResumeReading={() => offlineSpeech.resume()}
             onJumpToParagraph={(idx) => {
               if (!isPlayingSpeech) {
-                offlineSpeech.startReadingStory(selectedStory.content, idx);
+                offlineSpeech.startReadingStory(selectedStory, idx);
               } else {
                 offlineSpeech.skipToParagraph(idx);
               }
@@ -408,7 +393,7 @@ export default function App() {
         isPaused={isPausedSpeech}
         selectedVoice={selectedVoice}
         onSelectVoice={setSelectedVoice}
-        onPlay={() => offlineSpeech.startReadingStory(selectedStory.content, currentParagraphIndex)}
+        onPlay={() => offlineSpeech.startReadingStory(selectedStory, currentParagraphIndex)}
         onPause={() => offlineSpeech.pause()}
         onResume={() => offlineSpeech.resume()}
         onStop={() => offlineSpeech.stop()}

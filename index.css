@@ -60,3 +60,23 @@
 .storybook-frame {
   box-shadow: 0 10px 30px -5px rgba(117, 78, 30, 0.12), 0 0 0 1px rgba(180, 140, 90, 0.25);
 }
+
+/* 100% Offline Print / Save as PDF styles */
+@media print {
+  header, footer, .sticky, button, select, input, .lg\:col-span-4 {
+    display: none !important;
+  }
+  body, html {
+    background: white !important;
+    color: black !important;
+  }
+  .lg\:col-span-8 {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  #story-printable-container {
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+    padding: 20px !important;
+  }
+}

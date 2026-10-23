@@ -4,81 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ĐỌC TRUYỆN CỔ THIẾU NHI</title>
-    <meta name="description" content="Ứng dụng đọc truyện cổ tích thiếu nhi lưu trữ offline hoàn toàn, giao diện khung sách cổ tích ấm áp bảo vệ mắt cùng giọng đọc truyền cảm." />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta name="description" content="Ứng dụng đọc truyện cổ tích thiếu nhi hoàn toàn offline không cần API, giao diện khung văn bản nền giấy ấm áp bảo vệ mắt cùng giọng đọc truyền cảm." />
+    <meta name="theme-color" content="#6d4323" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Non-blocking font load with instant system fallback for 100% offline support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-      body {
-        font-family: 'Quicksand', sans-serif;
-      }
-      .font-serif-story {
-        font-family: 'Merriweather', Georgia, serif;
-      }
-      .font-sans-story {
-        font-family: 'Quicksand', system-ui, sans-serif;
-      }
-
-      /* Custom scrollbar for webkit */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.05);
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #d4a373;
-        border-radius: 9999px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #bc6c25;
-      }
-
-      /* Paper texture simulation */
-      .paper-parchment {
-        background-color: #faf6ee;
-        background-image: radial-gradient(#ecdcc2 0.75px, transparent 0.75px), radial-gradient(#ecdcc2 0.75px, #faf6ee 0.75px);
-        background-size: 30px 30px;
-        background-position: 0 0, 15px 15px;
-      }
-      .paper-cream {
-        background-color: #fdfbf7;
-        background-image: radial-gradient(#f0e6d6 0.6px, #fdfbf7 0.6px);
-        background-size: 24px 24px;
-      }
-      .paper-sage {
-        background-color: #f2f7f2;
-        background-image: radial-gradient(#dce8dc 0.6px, #f2f7f2 0.6px);
-        background-size: 24px 24px;
-      }
-      .paper-night {
-        background-color: #171d28;
-        background-image: radial-gradient(#263143 0.6px, #171d28 0.6px);
-        background-size: 24px 24px;
-      }
-
-      /* Ornate frame double border */
-      .storybook-frame {
-        box-shadow: 0 10px 30px -5px rgba(117, 78, 30, 0.12), 0 0 0 1px rgba(180, 140, 90, 0.25);
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
-    "react/": "https://esm.sh/react@^19.2.1/",
-    "react": "https://esm.sh/react@^19.2.1",
-    "lucide-react": "https://esm.sh/lucide-react@^0.559.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.33.0"
-  }
-}
-</script>
-</head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Quicksand:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Quicksand:wght@400;500;600;700&display=swap">
+    </noscript>
+  </head>
   <body class="bg-[#f5efe6] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900">
     <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Register offline service worker if available
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
 </html>
